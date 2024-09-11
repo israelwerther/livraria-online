@@ -6,9 +6,9 @@ class Book(models.Model):
     title = models.CharField(max_length=255, null=True, blank=True)
     author = models.CharField(max_length=255, null=True, blank=True)
     first_publish_year = models.IntegerField(null=True, blank=True)
-    cover_id = models.IntegerField(null=True, blank=True)  # ID da capa
-    open_library_id = models.CharField(max_length=50, unique=True, null=True, blank=True)  # Esse campo é o ID único do Open Library
-    logged_date = models.DateTimeField(null=True, blank=True)  # Data do log na API
+    cover_id = models.IntegerField(null=True, blank=True)
+    open_library_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    logged_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.title
@@ -38,7 +38,7 @@ class CartItem(models.Model):
     
 
 class Order(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='Orders', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
