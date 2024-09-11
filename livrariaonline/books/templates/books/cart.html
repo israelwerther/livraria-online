@@ -1,0 +1,43 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+  <h1 class="h3 mb-0 text-gray-800">Meu Carrinho</h1>
+</div>
+
+{% if items %}
+<div class="row">
+  {% for item in items %}
+  <div class="col-md-3">
+    <div class="card mb-4 h-100">
+      <img src="https://covers.openlibrary.org/b/id/{{ item.book.cover_id }}-L.jpg" class="card-img-top" alt="{{ item.book.title }}">
+      <div class="card-body">
+        <h5 class="card-title">{{ item.book.title }}</h5>
+        <p class="card-text">{{ item.book.author }}</p>
+        <p>Quantidade: {{ item.quantity }}</p>
+        
+        <form method="POST" action="{% url 'cart_remove' %}">
+          {% csrf_token %}
+          <input type="hidden" name="item_id" value="{{ item.id }}">
+          <button type="submit" class="btn btn-danger">Remover</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if user.is_authenticated %}
+<form method="POST" action="{% url 'checkout' %}">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-success">Finalizar Compra</button>
+</form>
+{% else %}
+<p>Faça <a href="{% url 'login' %}?next={% url 'order_success_redirect' %}">login</a> para finalizar sua compra.</p>
+{% endif %}
+{% else %}
+<p>Seu carrinho está vazio.</p>
+{% endif %}
+{% endblock content %}
+
