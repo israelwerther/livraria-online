@@ -25,7 +25,7 @@
 
 <body class="bg-gradient-primary">
 
-    <div class="container">
+    <div class="container" id="app">
 
         <!-- Outer Row -->
         <div class="row justify-content-center">
@@ -42,9 +42,12 @@
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                                     </div>
-                                    <form class="user" method="post" action="{% url 'login' %}">
+                                    <form class="user" method="post">
                                         {% csrf_token %}
-                                        <input type="hidden" name="next" value="{{ request.GET.next }}">
+                                        <template v-for="item in cart ? cart.items:[]">
+                                            <input type="hidden" name="book" :value="item.id">
+                                            <input type="hidden" name="quantity" :value="item.quantity">
+                                        </template>
                                         <div class="form-group">
                                             <input name="username" type="text" class="form-control form-control-user" id="exampleInputEmail" aria-describedby="emailHelp" placeholder="Enter Email Address...">
                                         </div>
@@ -85,6 +88,29 @@
     <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js'%}"></script>
     <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.7/axios.min.js" integrity="sha512-DdX/YwF5e41Ok+AI81HI8f5/5UsoxCVT9GKYZRIzpLxb8Twz4ZwPPX+jQMwMhNQ9b5+zDEefc+dcvQoPWGNZ3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{% static 'js/vue.js' %}"></script>
+
+    <script>
+    var app = new Vue({
+        delimiters: ["${", "}"],
+        el: "#app",
+        data: {
+            isAuthenticated: {{user.is_authenticated|safe|lower}},
+            cart: null
+        },
+        methods: {
+            fetchBooks() {
+                this.cart = JSON.parse(localStorage.getItem('cart'))
+            },
+        },
+        mounted() {
+            this.fetchBooks()
+        }
+    });
+    </script>
 
 </body>
 
