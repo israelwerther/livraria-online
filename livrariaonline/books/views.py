@@ -44,31 +44,23 @@ class MyBooksListView(ListView):
         context['books'] = books
         return context
 
-
 class CartListView(ListView):
     model = CartItem
     template_name = 'books/cart.html'
-    context_object_name = 'items'
 
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            cart = Cart.objects.filter(user=self.request.user).first()
-        else:
-            session_key = self.request.session.session_key
-            if not session_key:
-                self.request.session.save()
-                session_key = self.request.session.session_key
-            cart = Cart.objects.filter(session_key=session_key).first()
-        return cart.items.all() if cart else CartItem.objects.none()
+        queryset = super().get_queryset()
+
+        user = self.request.user
+        
+        if user.is_authenticated and user.my_cart():
+            queryset.filter(cart__user=user)
+        
+        return queryset.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        session_key = self.request.session.session_key
-        if not session_key:
-            self.request.session.save()
-            session_key = self.request.session.session_key
-        cart = Cart.objects.filter(session_key=session_key).first()
-        context['cart'] = cart
+        
         return context
 
 
@@ -83,29 +75,16 @@ class CartItemRemoveView(View):
         return redirect('cart')
 
 
-class CheckoutView(View):
-    def post(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            request.session['next'] = reverse('order_success_redirect')
-            request.session.modified = True
-            return redirect(f'{reverse("login")}?next={request.session["next"]}')
+class CheckoutTemplateView(TemplateView):
+    template_name = 'books/checkout.html'
 
-        session_key = request.session.session_key
-        cart = get_object_or_404(Cart, session_key=session_key)
+    def dispatch(self, request, *args, **kwargs):
+        if not self.request.user.is_authenticated:
+            redirect('/login')
+        
+        return super().dispatch(request, *args, **kwargs)
+    
 
-        if cart.items.exists():
-            order = Order.objects.create(user=request.user)
-            for item in cart.items.all():
-                OrderItem.objects.create(
-                    order=order,
-                    book=item.book,
-                    quantity=item.quantity
-                )
-            cart.items.all().delete()
-            request.session['order_id'] = order.id
-            return redirect('order_success', order_id=order.id)
-        else:
-            return redirect('cart')
 
 
 class OrderSuccessRedirectView(View):
@@ -113,9 +92,9 @@ class OrderSuccessRedirectView(View):
         order_id = request.session.get('order_id', None)
         if order_id:
             request.session['order_id'] = None
-            return redirect(reverse('order_success', kwargs={'order_id': order_id}))
+            return redirect(reverse('books:order_success', kwargs={'order_id': order_id}))
         else:
-            return redirect(reverse('books_list'))
+            return redirect(reverse('books:books_list'))
 
 
 class OrderSuccessView(View):
@@ -135,24 +114,43 @@ class MyOrdersListView(LoginRequiredMixin, ListView):
 
 
 class CustomLoginView(LoginView):
-    template_name = 'core/login.html'
+    template_name = 'registration/login.html'
 
-    def get_redirect_url(self):
-        next_url = self.request.GET.get('next')
-        if next_url:
-            return next_url
-        return reverse_lazy('my_orders')
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
+    def dispatch(self, request, *args, **kwargs):
 
         if self.request.user.is_authenticated:
-            session_key = self.request.session.session_key
-            if session_key:
-                cart = Cart.objects.filter(session_key=session_key).first()
-                if cart:
-                    cart.user = self.request.user
-                    cart.session_key = None
-                    cart.save()
+        
+            redirect(reverse_lazy('books:my_orders'))
+            
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_redirect_url(self):
+        
+        next_url = self.request.GET.get('next')
+        
+        if next_url:
+        
+            return next_url
+        
+        return reverse_lazy('books:my_orders')
+        
+
+    def form_valid(self, form):
+
+        response = super().form_valid(form)
+
+        next_url = self.request.GET.get('next')
+
+        data = self.request.POST
+
+        user = self.request.user
+
+        cart = user.my_cart()
+
+        if next_url == reverse_lazy('books:checkout'):
+            cart.clean_cart()
+        
+        for index, book_id in enumerate(data.getlist('book')):    
+            cart.add_book(book_id=book_id, quantity=data.getlist('quantity')[index] if data.getlist('quantity')[index] else 1)
         
         return response
