@@ -5,6 +5,7 @@ from django.urls import reverse, reverse_lazy
 from .models import Book, Cart, CartItem, Order, OrderItem
 from django.core.paginator import Paginator
 from django.contrib.auth.views import LoginView
+from django.db.models import Q
 
 class MyBooksListView(ListView):
     template_name = 'books/books.html'
@@ -33,7 +34,9 @@ class MyBooksListView(ListView):
         queryset = Book.objects.all()
         query = self.request.GET.get('q')
         if query:
-            queryset = queryset.filter(title__icontains=query)
+            queryset = queryset.filter(
+                Q(title__icontains=query) | Q(author__icontains=query)
+            )
         return queryset
 
     def get_context_data(self, **kwargs):
