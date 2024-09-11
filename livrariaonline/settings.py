@@ -140,5 +140,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'core:index'
-LOGOUT_REDIRECT_URL = 'login'
+LOGIN_REDIRECT_URL = 'books:my_orders'
+LOGOUT_REDIRECT_URL = 'books:books_list'
